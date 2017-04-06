@@ -1,3 +1,4 @@
+
 ===============
 sudo for cygwin
 ===============
@@ -15,14 +16,14 @@ You can use this like::
     $ sudo cygstart regedit
     $ sudo # just invoke elevated shell
 
-This might be handy if you are running cygwin on Vista or Windows 7 with UAC. By this program, you can run processes as an administator, from normal, non-elevated cygwin shell.
+This might be handy if you are running cygwin on Vista or above with UAC. With this program, you can run processes as an administator, from normal, non-elevated cygwin shell.
 
 
 Caution
--------
+-------------------------
 
 UAC Elevation is usually done through UI prompt for good reasons.
-By this program, you can run elevated process without UI prompt that does not
+This program can run elevated process without a UI prompt that does not
 go along well with Cygwin shell environment.
 However, it also means that you are weakening the system in terms of security.
 
@@ -35,74 +36,84 @@ It looks as if the child process is running in the current terminal.
 However, in fact, it's invoked by the server, and running remotely
 (though "remote" is in the same PC).
 
-You must launch a python script named **sudoserver.py** beforehand,
-in desired privileges. If you want function like "Run as administrator",
-just run **sudoserver** as administrator.
-For this purpose, Windows built-in Task Scheduler is handy.
+You must launch a python script named ``sudoserver.py`` beforehand,
+in desired privileges. If you want this to function like "Run as administrator",
+just run ``sudoserver`` as administrator.
+For this purpose, Windows' built-in Task Scheduler is handy.
 
-**sudoserver.py** opens a listening port 127.0.0.1:7070 (by defaults), 
-then sits and wait for connections from **sudo**.
+``sudoserver.py`` listens on ``127.0.0.1:7070`` by default, 
+then sits and wait for connections from ``sudo``.
 
-**sudo**, when invoked, connects to the **sudoserver**.
+``sudo``, when invoked, connects to the ``sudoserver``.
 Then it sends it's command line arguments, environment variables,
-current working directory, and terminal window size, to the **sudoserver**.
+current working directory, and terminal window size, to the ``sudoserver``.
 
-When **sudoserver** accepts connection from **sudo**, **sudoserver** forks a child process with pty, set up environments, current working directory or something, then execute the process.
+When ``sudoserver`` accepts connection from ``sudo``, ``sudoserver`` forks a child process with pty, set up environments, current working directory or something, then execute the process.
 
-The child process is spawned by the **sudoserver**, therefore it runs in the privileges same as the server.
+The child process is spawned by the ``sudoserver``, therefore it runs in the privileges same as the server.
 
 And, as the child process runs in a pty, it *acts* as if running in ordinary terminals. Therefore you can run cygwin's interactive console-based program like vim or less.
 
-After execution, **sudo** and **sudoserver** bridges user's tty and the process I/O.
+After execution, ``sudo`` and ``sudoserver`` bridges user's tty and the process I/O.
 
-Requirement
------------
+Requirements
+------------
 
-Both sudo and sudoserver.py is written in python, therefore you need to install Python.
+Both ``sudo`` and ``sudoserver.py`` is written in python2, therefore you need to install Python2.
 
-Also, you need Python module named greenlet, and eventlet. These are not packaged in cygwin, therefore you must manually install them.
+Also, you need Python modules ``greenlet``, and ``eventlet``. These are not packaged in cygwin, therefore you must manually install them. ``python-devel`` is also required for building ``greenlet``.
 
 How to setup
 ------------
 
-#. Install python with cygwin installer.
-#. Download greenlet. It can be downloaded from http://pypi.python.org/pypi/greenlet/
-#. Download eventlet. It can be downloaded from http://pypi.python.org/pypi/eventlet/
-#. If you don't have setuptools installed, you also need it. https://pypi.python.org/pypi/setuptools 
-#. Install greenlet package. Extract the archive, and cd to the directory. then you type in the cygwin shell::
+#. Install ``python2``, ``python2-devel``, ``python2-pip`` with cygwin installer.
 
-    $ python setup.py install
+#. To install dependencies, type the following in the cygwin shell:
 
-#. Install eventlet package. Extract the archive, and do the same with the above instruction for greenlet. If this doesn't work, probably you need setuptools. Download setuptools and install it. setuptools can be installed in same way as greenlet.
+    $ pip2 install setuptools eventlet greenlet
 
-#. You can place sudo and sudoserver.py where you like. You will want to execute sudo via command line, therefore /usr/local/bin or somewhere in the PATH will be good.
-#. If you want to use the TCP portnumber other than 7070 (default value), you have to edit the both script manually. It is written like::
+#. Place ``sudo`` and ``sudoserver.py`` somewhere in your PATH.
 
-    PORT = 7070
 
-#. At first, probably you want to test it. From cygwin shell, invoke sudoserver.py like::
+Testing
+------------
+
+#. From cygwin shell, invoke ``sudoserver.py`` with::
 
     $ /path/to/sudoserver.py
 
-#. And then, test sudo command like::
+#. To see all available arguments to ``sudoserver.py``, run::
+    
+    $ /path/to/sudoserver.py -h
+
+#. Test sudo command with::
 
     $ sudo ls -l
 
-#. If it seems to work, you can register sudoserver.py to the Windows task scheduler. I recommend you the following setup.
+Start sudo server at log in
+---------------------------
+
+#. If everything seems to work, you can register sudoserver.py to the Windows task scheduler:
 
    - Action: "Start a program"
    - Triggers: "At log on"
    - "Run with highest privileges": checked.
    - "Run only when user is logged on": checked.
-   - "Program/script": C:\\cygwin\\bin\\python.exe
-   - "Add arguments(optional)": /path/to/sudoserver.py -nw
+   - "Program/script": output of ``cygpath -w "$(realpath which python2)`` 
+   - "Add arguments(optional)": output of ``realpath /path/to/sudoserver.py`` and any additional arguments ( ``-nw`` is suggested )
+
+Changing the TCP port
+---------------------
+
+#. Run sudoserver.py with argument ``-p PORT``
+#. Set environment variable ``CYGWIN_SUDO_SERVER_PORT`` to the port for ``sudo``
 
 Notes
 -----
 
-With argument "-nw" is specified, **sudoserver** hides it's console window.
+The ``sudoserver`` logs all connections/commands. However, ith argument "-nw" is specified, ``sudoserver`` hides it's console window.
 
-**sudoserver** sets an aditional environment variable "ELEVATED_SHELL" when spawing child processes. You can use this variable for changing your elevated shell prompt (PS1), to see which environment you are in. For example, you can put the following in your .bashrc::
+``sudoserver`` sets an aditional environment variable "ELEVATED_SHELL" when spawing child processes. You can use this variable for changing your elevated shell prompt (PS1), to see which environment you are in. For example, you can put the following in your .bashrc::
 
     case $ELEVATED_SHELL in
     1) PS1='\[\033[31m\][\u@\h]#\[\033[0m\] ';;   # elevated
