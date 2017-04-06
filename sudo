@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import sys
 import os
 import fcntl
@@ -11,9 +11,10 @@ import socket
 import getopt
 import errno
 import traceback
+import os
 from contextlib import closing, contextmanager
 
-PORT = 7070
+PORT = os.environ.get('CYGWIN_SUDO_SERVER_PORT', 7070)
 
 CMD_DATA = 1
 CMD_WINSZ = 2

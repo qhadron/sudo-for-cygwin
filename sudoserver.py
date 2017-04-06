@@ -12,7 +12,6 @@ import eventlet
 import socket
 import errno
 
-PORT = 7070
 CMD_DATA = 1
 CMD_WINSZ = 2
 
@@ -113,7 +112,7 @@ def handle_sigchild(n, f):
                 traceback.print_exc()
             break
 
-def main():
+def main(PORT):
     eventlet.patcher.monkey_patch(all=True)
     server = eventlet.listen(('127.0.0.1', PORT))
     signal.signal(signal.SIGCHLD, handle_sigchild)
@@ -128,6 +127,15 @@ def cygwin_hide_console_window():
     ctypes.cdll.LoadLibrary('user32.dll').ShowWindow(hwnd, 0)
 
 if __name__ == '__main__':
-    if sys.platform == 'cygwin' and len(sys.argv) > 1 and sys.argv[1] == '-nw':
+    import argparse
+    parser = argparse.ArgumentParser(description="Run a sudo server.")
+    parser.add_argument('-nw','--hide',
+            action='store_true', dest='nw',
+            help="hide the console window of this program")
+    parser.add_argument('-p', '--port',
+            type=int, default=7070, dest='port',
+            help="change the port this program listens on (default: 7070)");
+    args = parser.parse_args()
+    if sys.platform == 'cygwin' and args.nw:
         cygwin_hide_console_window()
-    main()
+    main(args.port)
